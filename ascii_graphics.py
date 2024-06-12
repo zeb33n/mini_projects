@@ -41,9 +41,8 @@ class object:
         self.char = char
 
 
-
-
 ############## BOID ###############
+
 
 class unit(object):
     def move(self, direction, speed, bounce=False):
@@ -60,7 +59,6 @@ class unit(object):
             or 0 > self.loc[1]
             or self.loc[1] > self.screen.y
         ):
-
             if bounce:
                 if 0 > self.loc[1] or self.loc[1] > self.screen.y:
                     direction = -direction
@@ -85,7 +83,6 @@ class unit(object):
         self.move(mv_angle, speed)
 
 
-
 def main(s):
     u1 = unit(s)
     print("\n" * (s.y + 1))
@@ -96,4 +93,6 @@ def main(s):
         mv_angle = u1.move(mv_angle, speed=3, bounce=True)
         time.sleep(0.1)
 
-main(screen(40, 40))
+
+if __name__ == "__main__":
+    main(screen(40, 40))
