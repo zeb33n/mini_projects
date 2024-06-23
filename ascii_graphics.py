@@ -1,5 +1,5 @@
-import sys
 import time
+import sys
 import math
 from dice import random_num
 
@@ -7,7 +7,7 @@ from dice import random_num
 PI = 3.14159265358979
 
 
-class screen:
+class Screen:
     def __init__(self, x=10, y=10):
         self.x = x - 1
         self.y = y - 1
@@ -33,15 +33,83 @@ class screen:
         self.layout[y][x] = char
 
 
+############## GAME OF LIFE ###############
+class GameOfLife:
+    def __init__(self, screen: Screen):
+        self._screen = screen
+        # self._screen.print_screen()
+        while True:
+            time.sleep(0.1)
+            cell_calcs = self.calc_cells()
+            self.apply_rules(cell_calcs)
+            self._screen.update_screen()
+
+    def count_neighbours(self, x: int, y: int) -> int:
+        check_coords = (
+            (0, 1),
+            (0, -1),
+            (1, 0),
+            (-1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        )
+        coords = [
+            (x + cx, y + cy)
+            for cx, cy in check_coords
+            if x + cx >= 0
+            and x + cx <= self._screen.x
+            and y + cy >= 0
+            and y + cy <= self._screen.y
+        ]
+        count = 0
+        for cx, cy in coords:
+            if self._screen.layout[cy][cx] == ".":
+                continue
+            count += 1
+        return count
+
+    def calc_cells(self) -> list[tuple[str, int, int, int]]:
+        return [
+            (cell, self.count_neighbours(x, y), x, y)
+            for y, row in enumerate(self._screen.layout)
+            for x, cell in enumerate(row)
+        ]
+
+    def apply_rules(self, cell_calcs: list[tuple[str, int]]) -> None:
+        for cell, count, x, y in cell_calcs:
+            if "@" == cell and count < 2:
+                self._screen.draw_character(".", (x, y))
+            elif "@" == cell and 2 <= count <= 3:
+                pass
+            elif "@" == cell and count > 3:
+                self._screen.draw_character(".", (x, y))
+            elif "." == cell and count == 3:
+                self._screen.draw_character("@", (x, y))
+
+
+def main_conways() -> None:
+    screen = Screen(50, 50)
+    print("\n" * (screen.y + 1))
+    screen.draw_character("@", (25, 25))
+    screen.draw_character("@", (25, 26))
+    screen.draw_character("@", (25, 24))
+    screen.draw_character("@", (24, 25))
+    screen.draw_character("@", (26, 26))
+    screen.update_screen()
+    GameOfLife(screen)
+
+
+############## BOID ###############
+
+
 class object:
     def __init__(self, screen, char="@", start_coords=[0, 0]):
         self.screen = screen
         self.screen.draw_character(char, start_coords)
         self.loc = start_coords
         self.char = char
-
-
-############## BOID ###############
 
 
 class unit(object):
@@ -83,7 +151,7 @@ class unit(object):
         self.move(mv_angle, speed)
 
 
-def main(s):
+def main_boid(s):
     u1 = unit(s)
     print("\n" * (s.y + 1))
     mv_angle = 1
@@ -95,4 +163,5 @@ def main(s):
 
 
 if __name__ == "__main__":
-    main(screen(40, 40))
+    main_conways()
+# main_boid(Screen(40, 40))
