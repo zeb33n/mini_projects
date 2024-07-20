@@ -1,24 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct {
-  enum {
-    Int,
-    UInt,
-    Char,
-  } type;
-  union {
-    char c;
-    int i;
-    unsigned int u;
-  } value;
-} T;
+// use generic to get type?
+// give vector a type arg.
+// use union to assign values
+typedef enum {
+  INT,
+  UINT,
+  CHAR,
+  LONG,
+} Type;
+
+// #define gettype(x) _Generic((x), int : Int, unsigned int : UInt, char : Char)
 
 typedef struct {
   int maxvals;
   int numvals;
-  int* entries;
-} intarray_t;
+  Type type;
+  void* entries;
+} Vector;
 
 int pointer_clear(int** ptr) {
   if (*ptr != NULL) {
@@ -30,60 +30,90 @@ int pointer_clear(int** ptr) {
   }
 }
 
-intarray_t* create_intarray(int maxsize) {
-  intarray_t* ptr = NULL;
+size_t get_effective_size(Type type) {
+  switch (type) {
+    case CHAR:
+      return sizeof(char);
+    case INT:
+      return sizeof(int);
+    case UINT:
+      return sizeof(unsigned int);
+    case LONG:
+      return sizeof(long);
+  }
+}
 
-  ptr = (intarray_t*)malloc(sizeof(intarray_t));
+void vector_assign_value(Vector* vector, void* val, int index) {
+  switch (vector->type) {
+    case CHAR:
+      ((char*)vector->entries)[index] = *((char*)val);
+      break;
+    case INT:
+      ((int*)vector->entries)[index] = *((int*)val);
+      break;
+    case UINT:
+      ((unsigned int*)vector->entries)[index] = *((unsigned int*)val);
+      break;
+    case LONG:
+      ((long*)vector->entries)[index] = *((long*)val);
+      break;
+  }
+}
 
-  ptr->entries = (int*)malloc(sizeof(int) * maxsize);
-  ptr->maxvals = maxsize;
-  ptr->numvals = 0;
+Vector* create_vector(Type type, int size) {
+  Vector* ptr = (Vector*)malloc(sizeof(Vector));
+
+  ptr->entries = malloc(get_effective_size(type) * size);
+  ptr->maxvals = size;
+  ptr->numvals = size;
+  ptr->type = type;
 
   return ptr;
 }
 
-int destroy_intarray(intarray_t* array) {
-  if (array) {
-    free(array->entries);
-    array->maxvals = 0;
-    array->numvals = 0;
+int destroy_vector(Vector* vector) {
+  if (vector) {
+    free(vector->entries);
+    vector->maxvals = 0;
+    vector->numvals = 0;
     return 0;
   } else {
     return -1;
   }
 }
 
-int resize_array(intarray_t* array, int newsize) {
-  if (array->maxvals + newsize > array->numvals) {
-    array->entries =
-        (int*)realloc(array->entries, sizeof(int) * (array->maxvals + newsize));
-    array->maxvals = array->maxvals + newsize;
+int vector_resize(Vector* vector, int newsize) {
+  if (vector->maxvals + newsize > vector->numvals) {
+    vector->entries =
+        realloc(vector->entries,
+                get_effective_size(vector->type) * (vector->maxvals + newsize));
+    vector->maxvals = vector->maxvals + newsize;
     return 0;
   } else {
-    printf("Error: new size will cause data loss from array\n");
+    printf("Error: new size will cause data loss from vector\n");
     return -1;
   }
 }
 
-int append_intarray(intarray_t* array, int val) {
-  if (array->numvals == array->maxvals) {
-    resize_array(array, 1);
+int vector_append(Vector* vector, void* val) {
+  if (vector->numvals == vector->maxvals) {
+    vector_resize(vector, 1);
   }
-  if (array->numvals < array->maxvals) {
-    array->entries[array->numvals] = val;
-    ++array->numvals;
+  if (vector->numvals < vector->maxvals) {
+    vector_assign_value(vector, val, vector->numvals);
+    ++vector->numvals;
     return 0;
   } else {
-    printf("Error: cant extend array corrupted array");
+    printf("Error: cant extend vector corrupted vector");
     return -1;
   }
 }
 
-int write_intarray(intarray_t* array, int val, int index) {
-  if (index + 1 < array->maxvals) {
-    array->entries[index] = val;
-    if (index + 1 > array->numvals) {
-      array->numvals = index + 1;
+int vector_write(Vector* vector, void* val, int index) {
+  if (index + 1 < vector->maxvals) {
+    vector_assign_value(vector, val, index);
+    if (index + 1 > vector->numvals) {
+      vector->numvals = index + 1;
     }
     return 0;
   } else {
@@ -91,43 +121,37 @@ int write_intarray(intarray_t* array, int val, int index) {
   }
 }
 
-int len_intarray(intarray_t* array) {
-  return array->numvals;
+int vector_len(Vector* vector) {
+  return vector->numvals;
 }
 
-int size_intarray(intarray_t* array) {
-  return array->maxvals;
+int vector_size(Vector* vector) {
+  return vector->maxvals;
 }
 
-void print_intarray(intarray_t* array) {
+void print_vector(Vector* vector) {
   int i;
-  printf("array:{");
-  for (i = 0; i < array->numvals - 1; i++) {
-    printf("%i, ", array->entries[i]);
+  printf("vector:{");
+  for (i = 0; i < vector->numvals - 1; i++) {
+    printf("%i, ", ((char*)vector->entries)[i]);
   }
-  printf("%i}\nlength:%i  capacity:%i\n", array->entries[array->numvals - 1],
-         len_intarray(array), size_intarray(array));
+  printf("%i}\nlength:%i  capacity:%i\n",
+         ((char*)vector->entries)[vector->numvals - 1], vector_len(vector),
+         vector_size(vector));
 }
 
 int main(void) {
-  int i = 10;
-  intarray_t* x = NULL;
+  int i = 9;
+  Vector* x = NULL;
 
-  x = create_intarray(10);
-
+  x = create_vector(CHAR, 10);
   while (i) {
-    append_intarray(x, i);
+    printf("do we make it\n");
     i--;
+    vector_append(x, &i);
   }
 
-  write_intarray(x, 1337, 0);
-  print_intarray(x);
-
-  write_intarray(x, 69, 5);
-  print_intarray(x);
-
-  append_intarray(x, 420);
-  print_intarray(x);
+  print_vector(x);
 
   return 0;
 }
