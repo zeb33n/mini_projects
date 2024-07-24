@@ -12,7 +12,7 @@ typedef enum {
   LONG,
 } Type;
 
-// #define gettype(x) _Generic((x), int : Int, unsigned int : UInt, char : Char)
+#define gettype(x) _Generic((x), int : Int, unsigned int : UInt, char : Char)
 
 typedef struct {
   int maxvals;
@@ -61,18 +61,13 @@ void vector_assign_value(Vector* vector, void* val, int index) {
   }
 }
 
-void* vector_get(Vector* vector, int index) {
-  void* out;
-  return memcpy(out, &vector->entries[index], get_effective_size(vector->type));
-}
-
 Vector* create_vector(Type type, int size) {
-  Vector* ptr = (Vector*)malloc(sizeof(Vector));
+  Vector* ptr = malloc(sizeof(Vector));
 
-  ptr->entries = malloc(get_effective_size(type) * size);
   ptr->maxvals = size;
   ptr->numvals = 0;
   ptr->type = type;
+  ptr->entries = malloc(get_effective_size(type) * size);
 
   return ptr;
 }
@@ -104,14 +99,28 @@ int vector_resize(Vector* vector, int newsize) {
   }
 }
 
-void* vector_pop(Vector* vector, int index) {
-  void* out = vector_get(vector, index);
-  int i;
-  for (i = index; i > numvals; i++) {
-  }
+void* vector_get(Vector* vector, int index) {
+  // dont like how function mallocs behind the scenes
+  // maybe user should pass in ptr instead?!
+  size_t size = get_effective_size(vector->type);
+  void* out = malloc(size);
+  return memcpy(out, vector->entries + index * size, size);
 }
 
-int vector_append(Vector* vector, void* val) {
+void* vector_pop(Vector* vector, int index) {
+  int i;
+  size_t size = get_effective_size(vector->type);
+  void* out = vector_get(vector, index);
+  vector->numvals--;
+  for (i = index; i < vector->numvals; i++) {
+    void* lower = vector->entries + i * size;
+    void* upper = vector->entries + (i + 1) * size;
+    memcpy(lower, upper, size);
+  }
+  return out;
+}
+
+int vector_push(Vector* vector, void* val) {
   if (vector->numvals == vector->maxvals) {
     vector_resize(vector, 1);
   }
@@ -149,32 +158,39 @@ void print_vector(Vector* vector) {
   int i;
   printf("vector:{");
   for (i = 0; i < vector->numvals - 1; i++) {
-    printf("%i, ", ((char*)vector->entries)[i]);
+    printf("%i, ", ((int*)vector->entries)[i]);
   }
   printf("%i}\nlength:%i  capacity:%i\n",
-         ((char*)vector->entries)[vector->numvals - 1], vector_len(vector),
+         ((int*)vector->entries)[vector->numvals - 1], vector_len(vector),
          vector_size(vector));
 }
 
 int main(void) {
   int i = 9;
   Vector* x = NULL;
+  Vector* y = NULL;
+  y = create_vector(INT, 4);
+  int g = 2;
+  vector_push(y, &g);
+  vector_push(y, &g);
+  vector_push(y, &g);
+  vector_push(y, &i);
 
-  x = create_vector(CHAR, 10);
+  x = create_vector(INT, 10);
   while (i) {
     i--;
-    vector_append(x, &i);
+    vector_push(x, &i);
   }
 
+  int* out = vector_get(x, 2);
+
+  print_vector(x);
+  int* popped = vector_pop(x, 1);
   print_vector(x);
 
-  char* c = vector_get(x, 0);
-  char b = 1;
-  printf("%lu\n", sizeof(*c));
-  printf("%lu\n", sizeof(int));
-  vector_write(x, &b, 0);
-  printf("%i\n", *c);
-
   destroy_vector(&x);
+  destroy_vector(&y);
+  free(out);
+  free(popped);
   return 0;
 }
