@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 // use generic to get type?
 // give vector a type arg.
@@ -99,22 +100,23 @@ int vector_resize(Vector* vector, int newsize) {
   }
 }
 
-void* vector_get(Vector* vector, void* ptr, int index) {
-  size_t size = get_effective_size(vector->type);
-  return memcpy(ptr, vector->entries + index * size, size);
+void vector_get(Vector* vector, void* ptr, int index) {
+  if (index < vector->numvals) {
+    size_t size = get_effective_size(vector->type);
+    memcpy(ptr, vector->entries + index * size, size);
+  } else {
+    printf("Vec Error: index [%i] out of bounds\n", index);
+    exit(-1);
+  }
 }
 
 int vector_pop(Vector* vector, void* ptr, int index) {
-  int i;
   size_t size = get_effective_size(vector->type);
-  if (vector_get(vector, ptr, index) < 0) {
-    perror("Vec Error:");
-    return -1;
-  };
+  vector_get(vector, ptr, index);
   vector->numvals--;
-  for (i = index; i < vector->numvals; i++) {
-    void* lower = vector->entries + i * size;
-    void* upper = vector->entries + (i + 1) * size;
+  for (; index < vector->numvals; index++) {
+    void* lower = vector->entries + index * size;
+    void* upper = vector->entries + (index + 1) * size;
     memcpy(lower, upper, size);
   }
   return 0;
@@ -129,7 +131,7 @@ int vector_push(Vector* vector, void* val) {
     ++vector->numvals;
     return 0;
   } else {
-    printf("Vec Error: cant extend vector corrupted vector");
+    printf("Vec Error: cant extend vector corrupted vector\n");
     exit(-1);
   }
 }
@@ -142,7 +144,7 @@ int vector_write(Vector* vector, void* val, int index) {
     }
     return 0;
   } else {
-    printf("Vec Error: write is out of range");
+    printf("Vec Error: write is out of range\n");
     exit(-1);
   }
 }
@@ -158,16 +160,28 @@ int vector_size(Vector* vector) {
 void print_vector(Vector* vector) {
   int i;
   printf("vector:{");
-  for (i = 0; i < vector->numvals - 1; i++) {
-    printf("%i, ", ((int*)vector->entries)[i]);
+  for (i = 0; i < vector->numvals; i++) {
+    switch (vector->type) {
+      case (INT):
+        printf("%i, ", ((int*)vector->entries)[i]);
+        break;
+      case (CHAR):
+        printf("%c, ", ((char*)vector->entries)[i]);
+        break;
+      case (LONG):
+        printf("%lu, ", ((long*)vector->entries)[i]);
+        break;
+      case (UINT):
+        printf("%iu, ", ((unsigned int*)vector->entries)[i]);
+        break;
+    }
   }
-  printf("%i}\nlength:%i  capacity:%i\n",
-         ((int*)vector->entries)[vector->numvals - 1], vector_len(vector),
+  printf("}\nlength:%i  capacity:%i\n", vector_len(vector),
          vector_size(vector));
 }
 
 int main(void) {
-  int i = 9;
+  long i = 9;
   Vector* x = NULL;
   Vector* y = NULL;
   y = create_vector(INT, 4);
@@ -177,22 +191,24 @@ int main(void) {
   vector_push(y, &g);
   vector_push(y, &i);
 
-  x = create_vector(INT, 10);
+  x = create_vector(LONG, 1);
+  printf("%lu\n", sizeof(x->entries));
   while (i) {
     i--;
     vector_push(x, &i);
   }
 
-  int out = 0;
+  printf("%lu\n", sizeof(x->entries));
+  long out;
   vector_get(x, &out, 2);
 
-  printf("%i\n", out);
+  printf("%lu\n", out);
   print_vector(x);
 
-  int popped = 0;
-  vector_pop(x, &popped, 1);
+  long popped;
+  vector_pop(x, &popped, 9);
 
-  printf("%i\n", popped);
+  printf("%lu\n", popped);
   print_vector(x);
 
   destroy_vector(&x);
