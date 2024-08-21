@@ -100,22 +100,23 @@ int vector_resize(Vector* vector, int newsize) {
   }
 }
 
-void* vector_get(Vector* vector, void* ptr, int index) {
-  size_t size = get_effective_size(vector->type);
-  return memcpy(ptr, vector->entries + index * size, size);
+void vector_get(Vector* vector, void* ptr, int index) {
+  if (index < vector->numvals) {
+    size_t size = get_effective_size(vector->type);
+    memcpy(ptr, vector->entries + index * size, size);
+  } else {
+    printf("Vec Error: index [%i] out of bounds\n", index);
+    exit(-1);
+  }
 }
 
 int vector_pop(Vector* vector, void* ptr, int index) {
-  int i;
   size_t size = get_effective_size(vector->type);
-  if (vector_get(vector, ptr, index) < 0) {
-    perror("Vec Error:");
-    return -1;
-  };
+  vector_get(vector, ptr, index);
   vector->numvals--;
-  for (i = index; i < vector->numvals; i++) {
-    void* lower = vector->entries + i * size;
-    void* upper = vector->entries + (i + 1) * size;
+  for (; index < vector->numvals; index++) {
+    void* lower = vector->entries + index * size;
+    void* upper = vector->entries + (index + 1) * size;
     memcpy(lower, upper, size);
   }
   return 0;
@@ -130,7 +131,7 @@ int vector_push(Vector* vector, void* val) {
     ++vector->numvals;
     return 0;
   } else {
-    printf("Vec Error: cant extend vector corrupted vector");
+    printf("Vec Error: cant extend vector corrupted vector\n");
     exit(-1);
   }
 }
@@ -143,7 +144,7 @@ int vector_write(Vector* vector, void* val, int index) {
     }
     return 0;
   } else {
-    printf("Vec Error: write is out of range");
+    printf("Vec Error: write is out of range\n");
     exit(-1);
   }
 }
@@ -190,22 +191,22 @@ int main(void) {
   vector_push(y, &g);
   vector_push(y, &i);
 
-  x = create_vector(LONG, 10);
-  printf("%lu\n", sizeof(*(x->entries)));
+  x = create_vector(LONG, 1);
+  printf("%lu\n", sizeof(x->entries));
   while (i) {
     i--;
     vector_push(x, &i);
   }
-  printf("%lu\n", sizeof(x->entries));
 
-  long out = 0;
+  printf("%lu\n", sizeof(x->entries));
+  long out;
   vector_get(x, &out, 2);
 
   printf("%lu\n", out);
   print_vector(x);
 
-  long popped = 0;
-  vector_pop(x, &popped, 1);
+  long popped;
+  vector_pop(x, &popped, 9);
 
   printf("%lu\n", popped);
   print_vector(x);
