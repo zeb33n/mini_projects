@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 // use generic to get type?
 // give vector a type arg.
@@ -158,16 +159,28 @@ int vector_size(Vector* vector) {
 void print_vector(Vector* vector) {
   int i;
   printf("vector:{");
-  for (i = 0; i < vector->numvals - 1; i++) {
-    printf("%i, ", ((int*)vector->entries)[i]);
+  for (i = 0; i < vector->numvals; i++) {
+    switch (vector->type) {
+      case (INT):
+        printf("%i, ", ((int*)vector->entries)[i]);
+        break;
+      case (CHAR):
+        printf("%c, ", ((char*)vector->entries)[i]);
+        break;
+      case (LONG):
+        printf("%lu, ", ((long*)vector->entries)[i]);
+        break;
+      case (UINT):
+        printf("%iu, ", ((unsigned int*)vector->entries)[i]);
+        break;
+    }
   }
-  printf("%i}\nlength:%i  capacity:%i\n",
-         ((int*)vector->entries)[vector->numvals - 1], vector_len(vector),
+  printf("}\nlength:%i  capacity:%i\n", vector_len(vector),
          vector_size(vector));
 }
 
 int main(void) {
-  int i = 9;
+  long i = 9;
   Vector* x = NULL;
   Vector* y = NULL;
   y = create_vector(INT, 4);
@@ -177,22 +190,24 @@ int main(void) {
   vector_push(y, &g);
   vector_push(y, &i);
 
-  x = create_vector(INT, 10);
+  x = create_vector(LONG, 10);
+  printf("%lu\n", sizeof(*(x->entries)));
   while (i) {
     i--;
     vector_push(x, &i);
   }
+  printf("%lu\n", sizeof(x->entries));
 
-  int out = 0;
+  long out = 0;
   vector_get(x, &out, 2);
 
-  printf("%i\n", out);
+  printf("%lu\n", out);
   print_vector(x);
 
-  int popped = 0;
+  long popped = 0;
   vector_pop(x, &popped, 1);
 
-  printf("%i\n", popped);
+  printf("%lu\n", popped);
   print_vector(x);
 
   destroy_vector(&x);
