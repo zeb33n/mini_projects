@@ -12,7 +12,7 @@ typedef enum {
   LONG,
 } Type;
 
-#define gettype(x) _Generic((x), int : Int, unsigned int : UInt, char : Char)
+// #define gettype(x) _Generic((x), int : Int, unsigned int : UInt, char : Char)
 
 typedef struct {
   int maxvals;
@@ -94,30 +94,30 @@ int vector_resize(Vector* vector, int newsize) {
     vector->maxvals = vector->maxvals + newsize;
     return 0;
   } else {
-    printf("Error: new size will cause data loss from vector\n");
-    return -1;
+    printf("Vec Error: new size will cause data loss from vector\n");
+    exit(-1);
   }
 }
 
-void* vector_get(Vector* vector, int index) {
-  // dont like how function mallocs behind the scenes
-  // maybe user should pass in ptr instead?!
+void* vector_get(Vector* vector, void* ptr, int index) {
   size_t size = get_effective_size(vector->type);
-  void* out = malloc(size);
-  return memcpy(out, vector->entries + index * size, size);
+  return memcpy(ptr, vector->entries + index * size, size);
 }
 
-void* vector_pop(Vector* vector, int index) {
+int vector_pop(Vector* vector, void* ptr, int index) {
   int i;
   size_t size = get_effective_size(vector->type);
-  void* out = vector_get(vector, index);
+  if (vector_get(vector, ptr, index) < 0) {
+    perror("Vec Error:");
+    return -1;
+  };
   vector->numvals--;
   for (i = index; i < vector->numvals; i++) {
     void* lower = vector->entries + i * size;
     void* upper = vector->entries + (i + 1) * size;
     memcpy(lower, upper, size);
   }
-  return out;
+  return 0;
 }
 
 int vector_push(Vector* vector, void* val) {
@@ -129,8 +129,8 @@ int vector_push(Vector* vector, void* val) {
     ++vector->numvals;
     return 0;
   } else {
-    printf("Error: cant extend vector corrupted vector");
-    return -1;
+    printf("Vec Error: cant extend vector corrupted vector");
+    exit(-1);
   }
 }
 
@@ -142,7 +142,8 @@ int vector_write(Vector* vector, void* val, int index) {
     }
     return 0;
   } else {
-    return -1;
+    printf("Vec Error: write is out of range");
+    exit(-1);
   }
 }
 
@@ -182,15 +183,19 @@ int main(void) {
     vector_push(x, &i);
   }
 
-  int* out = vector_get(x, 2);
+  int out = 0;
+  vector_get(x, &out, 2);
 
+  printf("%i\n", out);
   print_vector(x);
-  int* popped = vector_pop(x, 1);
+
+  int popped = 0;
+  vector_pop(x, &popped, 1);
+
+  printf("%i\n", popped);
   print_vector(x);
 
   destroy_vector(&x);
   destroy_vector(&y);
-  free(out);
-  free(popped);
   return 0;
 }
